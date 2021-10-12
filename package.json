@@ -18,5 +18,8 @@
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^6.0.5"
   },
-  "type": "module"
+  "type": "module",
+  "engines": {
+    "node": "14.17.5"
+  }
 }
