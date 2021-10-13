@@ -1,3 +1,4 @@
+import e from 'express';
 import express from 'express';
 import jwt from 'jsonwebtoken';
 
@@ -12,21 +13,30 @@ let refreshTokens = [];
 router.post('/login', (req, res) => {
     // read username and password from request body
     const { username, password } = req.body;
-    console.log(req.body)
 
-    User.findOne({username: username, password: password }, (err, user) => {
+    User.findOne({ username: username }, (err, user) => {
         if(err || !user) {
-            res.sendStatus(401);
+            res.status(401).json('user does not exist');
         } else {
-            const accessToken = jwt.sign({ id: user._id, username: user.username }, accessTokenSecret, { expiresIn: '120m' });
-            const refreshToken = jwt.sign({ id: user._id, username: user.username }, refreshTokenSecret);
-    
-            refreshTokens.push(refreshToken);
-    
-            res.json({
-                accessToken,
-                refreshToken
-            });
+            user.comparePassword(password, (error, isMatch) => {
+                if(error) {
+                    console.log(error);
+                }
+
+                if(isMatch) {
+                    const accessToken = jwt.sign({ id: user._id, username: user.username }, accessTokenSecret, { expiresIn: '120m' });
+                    const refreshToken = jwt.sign({ id: user._id, username: user.username }, refreshTokenSecret);
+            
+                    refreshTokens.push(refreshToken);
+            
+                    res.json({
+                        accessToken,
+                        refreshToken
+                    });
+                } else {
+                    res.status(400).json('invalid credentials');
+                }
+            })
         }
     })
 });
@@ -61,5 +71,22 @@ router.post('/logout', (req, res) => {
 
     res.send("Logout successful");
 });
+
+router.post('/signup', (req, res) => {
+    const { username, password } = req.body;
+
+    User.findOne({ username: username }).then((user) => {
+        if(user) {
+            res.status(500).json('user exists');
+        } else {
+            User.create({
+                username,
+                password
+            });
+
+            res.status(200).json('user created');
+        }
+    })
+})
 
 export default router;
